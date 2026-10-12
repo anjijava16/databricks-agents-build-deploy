@@ -1,0 +1,97 @@
+# Databricks Asset Bundle: the one entry point the Databricks CLI reads.
+#
+#   databricks bundle validate -t dev
+#   databricks bundle deploy   -t dev
+#   databricks bundle run retail_platform -t dev   # ETL + docs in parallel, then evals
+#   databricks bundle run retail_app -t dev        # start the app and deploy its code
+#
+# Everything runs on Databricks: serverless jobs, Unity Catalog, Vector Search,
+# Foundation Model APIs, MLflow and Databricks Apps. No other cloud services.
+
+bundle:
+  name: retail-ai-platform
+
+include:
+  - resources/*.yml
+
+# Built locally or in CI before upload. Jobs reference it as ../dist/*.whl
+artifacts:
+  python_artifact:
+    type: whl
+    build: uv build --wheel
+    path: .
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds the retail schema
+    default: workspace
+  schema:
+    description: Schema for this environment (set per target below)
+    default: retail_dev
+  warehouse_id:
+    description: SQL warehouse for the agents, UC functions, grants and evals
+    lookup:
+      warehouse: "Serverless Starter Warehouse"
+  llm_endpoint:
+    description: Chat model (Foundation Model API, OpenAI-compatible) used by every assistant
+    default: databricks-meta-llama-3-3-70b-instruct
+  embedding_endpoint:
+    description: Embedding model Vector Search uses for managed embeddings
+    default: databricks-gte-large-en
+  vector_search_endpoint:
+    description: Vector Search endpoint (one per workspace is enough; indexes are per schema)
+    default: retail-ai-vs
+  sec_user_agent:
+    description: >-
+      "Name email@domain" sent to SEC EDGAR, which requires a contact on every request.
+      Leave empty to skip SEC filings (the knowledge base is then internal policies only).
+    default: ""
+  filing_tickers:
+    description: Retail peers whose latest 10-K is indexed
+    default: WMT,COST,TGT,HD,LOW,AMZN,KR,BBY,DG,TJX
+  etl_days:
+    description: Days of synthetic sales the generator lands per run
+    default: "30"
+  etl_schedule_status:
+    description: PAUSED or UNPAUSED for the daily platform schedule
+    default: PAUSED
+  deploy_agent:
+    description: '"true" makes retail_agent_register also deploy to Model Serving'
+    default: "false"
+
+sync:
+  exclude:
+    - ".venv/**"
+    - "dist/**"
+    - "tests/**"
+    - ".github/**"
+    - "**/__pycache__/**"
+
+targets:
+  dev:
+    # development mode: resources prefixed with [dev <you>], schedules paused,
+    # deployed to your own workspace folder. Safe to experiment.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-d40d7b72-eeb2.cloud.databricks.com
+    variables:
+      schema: retail_dev
+
+  staging:
+    workspace:
+      host: https://dbc-d40d7b72-eeb2.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: retail_staging
+
+  prod:
+    # production mode: stable names, refuses dev-flavoured deploys, schedule on.
+    mode: production
+    workspace:
+      host: https://dbc-d40d7b72-eeb2.cloud.databricks.com
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      schema: retail_prod
+      etl_days: "3"
+      etl_schedule_status: UNPAUSED

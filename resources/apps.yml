@@ -1,0 +1,31 @@
+# Registers the Databricks App. HOW it runs (command, env) lives in app.yaml at the
+# repo root; this file says the app exists, where its code is, and which workspace
+# resources its service principal may use.
+#
+# `bundle deploy` creates/updates the app but does not start compute.
+# `databricks bundle run retail_app -t <target>` starts it and deploys the code.
+# Unity Catalog access (tables, Vector Search index, UC functions) is granted
+# separately by `retail-grant-app`, because UC privileges are not app resources.
+
+resources:
+  apps:
+    retail_app:
+      name: retail-ai-${bundle.target}
+      description: Retail AI assistant. Agentic RAG over sales data, internal policies and SEC filings.
+      source_code_path: ..
+      resources:
+        - name: sql-warehouse
+          description: Warehouse for SQL tools and the filing_lookup UC function
+          sql_warehouse:
+            id: ${var.warehouse_id}
+            permission: CAN_USE
+        - name: serving-endpoint
+          description: Chat model behind every assistant
+          serving_endpoint:
+            name: ${var.llm_endpoint}
+            permission: CAN_QUERY
+        - name: embedding-endpoint
+          description: Embedding model Vector Search calls to embed queries
+          serving_endpoint:
+            name: ${var.embedding_endpoint}
+            permission: CAN_QUERY

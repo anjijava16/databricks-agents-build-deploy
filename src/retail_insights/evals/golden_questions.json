@@ -1,0 +1,66 @@
+[
+  {
+    "id": "kpi_net_revenue_7d",
+    "question": "What was total net revenue from {start7} to {end}?",
+    "expected_tools": ["get_sales_kpis", "run_sql"],
+    "reference_sql": "SELECT ROUND(SUM(net_revenue), 2) AS v FROM {t_daily} WHERE order_date BETWEEN DATE'{start7}' AND DATE'{end}'",
+    "check": "number",
+    "offline_call": {"tool": "get_sales_kpis", "arguments": {"start_date": "{start7}", "end_date": "{end}"}}
+  },
+  {
+    "id": "kpi_aov_30d",
+    "question": "What was the average order value between {start30} and {end}?",
+    "expected_tools": ["get_sales_kpis", "run_sql"],
+    "reference_sql": "SELECT ROUND(SUM(net_revenue) / SUM(orders), 2) AS v FROM {t_daily} WHERE order_date BETWEEN DATE'{start30}' AND DATE'{end}'",
+    "check": "number",
+    "offline_call": {"tool": "get_sales_kpis", "arguments": {"start_date": "{start30}", "end_date": "{end}"}}
+  },
+  {
+    "id": "top_region_margin",
+    "question": "Which region had the highest gross margin between {start30} and {end}?",
+    "expected_tools": ["get_sales_kpis", "run_sql"],
+    "reference_sql": "SELECT region AS v FROM {t_daily} WHERE order_date BETWEEN DATE'{start30}' AND DATE'{end}' GROUP BY region ORDER BY SUM(gross_margin) DESC LIMIT 1",
+    "check": "text",
+    "offline_call": {"tool": "get_sales_kpis", "arguments": {"start_date": "{start30}", "end_date": "{end}", "group_by": "region"}}
+  },
+  {
+    "id": "top_product_overall",
+    "question": "What is our single best-selling product by net revenue?",
+    "expected_tools": ["top_products", "run_sql"],
+    "reference_sql": "SELECT product_name AS v FROM {t_products} ORDER BY net_revenue DESC LIMIT 1",
+    "check": "text",
+    "offline_call": {"tool": "top_products", "arguments": {"metric": "net_revenue", "limit": 1}}
+  },
+  {
+    "id": "top_grocery_units",
+    "question": "Which Grocery product sold the most units?",
+    "expected_tools": ["top_products", "run_sql"],
+    "reference_sql": "SELECT product_name AS v FROM {t_products} WHERE category = 'Grocery' ORDER BY units_sold DESC LIMIT 1",
+    "check": "text",
+    "offline_call": {"tool": "top_products", "arguments": {"metric": "units_sold", "category": "Grocery", "limit": 1}}
+  },
+  {
+    "id": "champions_count",
+    "question": "How many customers are in the Champions segment?",
+    "expected_tools": ["customer_segments", "run_sql"],
+    "reference_sql": "SELECT COUNT(*) AS v FROM {t_rfm} WHERE segment = 'Champions'",
+    "check": "number",
+    "offline_call": {"tool": "customer_segments", "arguments": {}}
+  },
+  {
+    "id": "online_share",
+    "question": "How many completed online orders were there between {start30} and {end}?",
+    "expected_tools": ["get_sales_kpis", "run_sql"],
+    "reference_sql": "SELECT SUM(orders) AS v FROM {t_daily} WHERE channel = 'ONLINE' AND order_date BETWEEN DATE'{start30}' AND DATE'{end}'",
+    "check": "number",
+    "offline_call": {"tool": "get_sales_kpis", "arguments": {"start_date": "{start30}", "end_date": "{end}", "group_by": "channel"}}
+  },
+  {
+    "id": "freeform_payment_mix",
+    "question": "How many completed order lines were paid with WALLET between {start7} and {end}?",
+    "expected_tools": ["run_sql"],
+    "reference_sql": "SELECT COUNT(*) AS v FROM {t_sales} WHERE payment_type = 'WALLET' AND status = 'COMPLETED' AND order_date BETWEEN DATE'{start7}' AND DATE'{end}'",
+    "check": "number",
+    "offline_call": {"tool": "run_sql", "arguments": {"query": "SELECT COUNT(*) AS lines FROM silver_sales WHERE payment_type = 'WALLET' AND status = 'COMPLETED' AND order_date BETWEEN '{start7}' AND '{end}'"}}
+  }
+]

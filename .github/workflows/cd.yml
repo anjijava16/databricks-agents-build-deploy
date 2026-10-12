@@ -1,0 +1,120 @@
+# Manual deploy to a chosen environment. Protect `prod` with required reviewers
+# in Settings -> Environments so a deploy waits for approval.
+#
+# This workflow runs ONLY via manual dispatch (Actions tab -> CD -> Run workflow,
+# or `gh workflow run cd.yml`). The "Run workflow" button appears once this file
+# exists on the default branch and GitHub has registered it.
+#
+# Order matters: the document pipeline creates the Vector Search endpoint and
+# index, so it runs before the grant step (which gives the app CAN_USE on the
+# endpoint) and before the app starts. The scheduled `retail_platform` job does
+# the same refresh daily in prod; this workflow runs the pieces one by one so
+# each shows up as its own step.
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Bundle target
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+      run_etl:
+        description: Run the sales ETL job after deploy
+        type: boolean
+        default: true
+      run_docs:
+        description: Run the document pipeline (policies + SEC filings -> Vector Search) after deploy
+        type: boolean
+        default: true
+      run_eval:
+        description: Run the live agent evals (analytics + RAG + agentic RAG) after deploy
+        type: boolean
+        default: false
+      register_agent:
+        description: Register the agentic assistant in Unity Catalog (deploys to Model Serving if deploy_agent=true)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write   # only needed if you switch to GitHub OIDC federation (see README_UPDATE.md)
+
+concurrency:
+  group: deploy-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy to ${{ inputs.target }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST || 'https://dbc-d40d7b72-eeb2.cloud.databricks.com' }}
+      # OAuth machine-to-machine with a service principal.
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      # Alternative, no stored secret: create a federation policy for this repo on
+      # the service principal, delete the CLIENT_SECRET line above and set:
+      # DATABRICKS_AUTH_TYPE: github-oidc
+      #
+      # SEC EDGAR needs a contact on every request ("Name email@domain"). Set the
+      # repo variable SEC_EDGAR_USER_AGENT; if it's empty the docs pipeline skips
+      # filings and indexes the internal policies only.
+      BUNDLE_VAR_sec_user_agent: ${{ vars.SEC_EDGAR_USER_AGENT }}
+      TARGET: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv (builds the wheel during deploy)
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Who am I
+        run: databricks current-user me -o json | jq -r '.userName'
+
+      - name: Validate bundle
+        run: databricks bundle validate -t "$TARGET"
+
+      - name: Deploy bundle (wheel, jobs, app registration)
+        run: databricks bundle deploy -t "$TARGET" --auto-approve
+
+      - name: Run ETL job
+        if: inputs.run_etl
+        run: databricks bundle run retail_etl -t "$TARGET"
+
+      - name: Run document pipeline (first run creates the Vector Search endpoint, allow ~20 min)
+        if: inputs.run_docs
+        run: databricks bundle run retail_docs -t "$TARGET"
+
+      - name: Grant the app read access (schema, Vector Search index, UC functions, VS endpoint)
+        run: |
+          uv run --no-dev retail-grant-app --app-name "retail-ai-$TARGET" \
+            --catalog workspace --schema "retail_$TARGET"
+
+      - name: Start app and deploy its code
+        run: databricks bundle run retail_app -t "$TARGET"
+
+      - name: Live agent eval
+        if: inputs.run_eval
+        run: databricks bundle run retail_agent_eval -t "$TARGET"
+
+      - name: Register agent in Unity Catalog
+        if: inputs.register_agent
+        run: databricks bundle run retail_agent_register -t "$TARGET"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Deployed \`$TARGET\`"
+            echo ""
+            echo '```'
+            databricks bundle summary -t "$TARGET" || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

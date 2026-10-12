@@ -1,0 +1,26 @@
+[
+  {"id": "ret_electronics_window", "question": "How many days do customers have to return electronics?", "expected_docs": ["POL-RET-001"], "expected_facts": ["15 days"], "routes": ["policies"]},
+  {"id": "ret_gold_window", "question": "What is the return window for Gold loyalty members?", "expected_docs": ["POL-RET-001", "POL-LOY-002"], "expected_facts": ["60 days"], "routes": ["policies"]},
+  {"id": "ret_restocking_fee", "question": "Do Gold members pay the restocking fee on opened electronics?", "expected_docs": ["POL-RET-001", "POL-LOY-002"], "expected_facts": ["Gold members are exempt from the 10% restocking fee"], "routes": ["policies"]},
+  {"id": "ret_grocery", "question": "Can customers return grocery items?", "expected_docs": ["POL-RET-001"], "expected_facts": ["Grocery items are not returnable except perishables with a quality problem"], "routes": ["policies"]},
+  {"id": "ret_cash_refund", "question": "How are refunds handled for large cash purchases?", "expected_docs": ["POL-RET-001"], "expected_facts": ["cash refunds up to 200 USD, above that store credit or check"], "routes": ["policies"]},
+  {"id": "prc_grocery_max", "question": "What is the maximum promotional discount allowed on Grocery?", "expected_docs": ["POL-PRC-003"], "expected_facts": ["10%"], "routes": ["policies"]},
+  {"id": "prc_electronics_max", "question": "What is the highest discount we can give on Electronics without VP approval?", "expected_docs": ["POL-PRC-003"], "expected_facts": ["15%"], "routes": ["policies"]},
+  {"id": "loy_gold_threshold", "question": "How much do customers need to spend to reach Gold status?", "expected_docs": ["POL-LOY-002"], "expected_facts": ["2,000 USD of net spend in a calendar year"], "routes": ["policies"]},
+  {"id": "loy_points", "question": "How many points do Silver members earn per dollar?", "expected_docs": ["POL-LOY-002"], "expected_facts": ["1.25 points per dollar"], "routes": ["policies"]},
+  {"id": "war_coverage", "question": "How long is the store warranty on electronics?", "expected_docs": ["POL-WAR-004"], "expected_facts": ["12 months"], "routes": ["policies"]},
+  {"id": "seg_at_risk", "question": "What does the segmentation playbook tell us to do with At Risk customers?", "expected_docs": ["POL-SEG-005"], "expected_facts": ["win-back email within 7 days with a 15% offer valid for 14 days"], "routes": ["policies"]},
+  {"id": "glo_net_revenue", "question": "How is net revenue defined?", "expected_docs": ["POL-GLO-006"], "expected_facts": ["gross revenue minus discounts for completed lines only"], "routes": ["policies"]},
+  {"id": "sup_otif", "question": "What on-time in-full target must suppliers meet?", "expected_docs": ["POL-SUP-007"], "expected_facts": ["95%"], "routes": ["policies"]},
+  {"id": "ful_free_shipping", "question": "When do online orders ship for free?", "expected_docs": ["POL-FUL-008", "POL-LOY-002"], "expected_facts": ["orders over 50 USD ship free"], "routes": ["policies"]},
+  {"id": "ops_shrink", "question": "What is the shrink target for a store?", "expected_docs": ["POL-OPS-009"], "expected_facts": ["below 1.5% of net revenue per quarter"], "routes": ["policies"]},
+  {"id": "ai_personal_data", "question": "Can the assistant see customer email addresses?", "expected_docs": ["POL-AI-010"], "expected_facts": ["customer emails and names are not available to the assistant"], "routes": ["policies"]},
+
+  {"id": "x_discount_breach", "question": "How many Electronics order lines got a discount above our policy maximum in the last 30 days?", "expected_docs": ["POL-PRC-003"], "expected_facts": ["Electronics maximum is 15%"], "routes": ["analytics", "policies"], "kind": "agentic"},
+  {"id": "x_at_risk_action", "question": "How many customers are in the At Risk segment and what should we do for them according to our playbook?", "expected_docs": ["POL-SEG-005"], "expected_facts": ["win-back offer of 15% valid for 14 days"], "routes": ["analytics", "policies"], "kind": "agentic"},
+  {"id": "x_return_rate_vs_policy", "question": "Which Electronics product has the highest return rate, and at what return rate does our warranty policy escalate to the supplier?", "expected_docs": ["POL-WAR-004", "POL-SUP-007"], "expected_facts": ["8% in a quarter"], "routes": ["analytics", "policies"], "kind": "agentic"},
+  {"id": "x_filing_returns", "question": "What does Best Buy's 10-K say about product returns and how does that compare with our electronics return window?", "expected_docs": ["POL-RET-001"], "expected_facts": ["our electronics window is 15 days"], "routes": ["filings", "policies"], "kind": "agentic", "requires_filings": true},
+  {"id": "x_walmart_filed", "question": "When did Walmart file its latest 10-K?", "expected_docs": [], "expected_facts": [], "routes": ["filing_meta"], "kind": "agentic", "requires_filings": true},
+  {"id": "x_target_supply", "question": "What supply chain risks does Target describe in its 10-K?", "expected_docs": [], "expected_facts": [], "routes": ["filings"], "kind": "agentic", "requires_filings": true},
+  {"id": "x_off_topic", "question": "What's the capital of France?", "expected_docs": [], "expected_facts": [], "routes": [], "kind": "agentic", "expect_refusal": true}
+]

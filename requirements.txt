@@ -1,0 +1,8 @@
+# Installed by Databricks Apps when the app container starts.
+# Keep in sync with [project.dependencies] + the "app" extra in pyproject.toml.
+databricks-sdk>=0.60.0
+langgraph>=0.6.0
+openai>=1.40.0
+requests>=2.31.0
+sqlglot>=25.0.0
+streamlit>=1.38.0

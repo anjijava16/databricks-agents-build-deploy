@@ -1,0 +1,80 @@
+[project]
+name = "retail-ai-platform"
+version = "0.2.0"
+description = "Retail data + AI on Databricks: medallion ETL, a document pipeline into Vector Search, a SQL analytics agent, RAG and agentic RAG."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Anjaiah Methuku" }]
+license = { text = "MIT" }
+
+# Runtime deps for the wheel that runs on Databricks serverless jobs and in the app.
+# pyspark is deliberately NOT listed: the Databricks runtime provides it.
+dependencies = [
+    "databricks-sdk>=0.60.0",
+    "langgraph>=0.6.0",
+    "openai>=1.40.0",
+    "requests>=2.31.0",
+    "sqlglot>=25.0.0",
+]
+
+[project.optional-dependencies]
+app = ["streamlit>=1.38.0"]
+# Tracing, judge-based evaluation and Model Serving packaging.
+mlflow = ["mlflow[databricks]>=3.11"]
+
+# Every script is also a python_wheel_task entry point in resources/jobs.yml.
+[project.scripts]
+# structured ETL
+retail-setup = "retail_insights.etl.jobs:setup"
+retail-generate = "retail_insights.etl.jobs:generate"
+retail-bronze = "retail_insights.etl.jobs:bronze"
+retail-silver = "retail_insights.etl.jobs:silver"
+retail-gold = "retail_insights.etl.jobs:gold"
+retail-quality-gate = "retail_insights.etl.jobs:quality_gate"
+# document pipeline
+retail-land-policies = "retail_insights.knowledge.jobs:land_policies"
+retail-fetch-filings = "retail_insights.knowledge.jobs:fetch_filings"
+retail-bronze-docs = "retail_insights.knowledge.jobs:bronze_docs"
+retail-silver-docs = "retail_insights.knowledge.jobs:silver_docs"
+retail-chunk-docs = "retail_insights.knowledge.jobs:chunk_docs"
+retail-uc-functions = "retail_insights.knowledge.jobs:uc_functions"
+retail-vector-index = "retail_insights.knowledge.jobs:vector_index"
+retail-docs-quality-gate = "retail_insights.knowledge.jobs:docs_quality_gate"
+# evaluation, serving, ops
+retail-eval = "retail_insights.evals.runner:main"
+retail-eval-rag = "retail_insights.evals.rag_runner:main"
+retail-register-agent = "retail_insights.serving.register:main"
+retail-grant-app = "retail_insights.ops.grants:main"
+
+[dependency-groups]
+dev = [
+    "mlflow>=3.11",
+    "pyspark>=4.0.0",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pyyaml>=6.0",
+    "ruff>=0.6.0",
+    "streamlit>=1.38.0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/retail_insights"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["spark: needs a local SparkSession (Java required)"]
+filterwarnings = ["ignore::FutureWarning"]

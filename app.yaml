@@ -1,0 +1,18 @@
+# Read by Databricks Apps when the app container starts.
+command: ["streamlit", "run", "src/retail_insights/app/streamlit_app.py"]
+
+env:
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse          # resolved from resources/apps.yml
+  - name: SERVING_ENDPOINT
+    valueFrom: serving-endpoint
+  - name: RETAIL_CATALOG
+    value: workspace
+  # Vector Search over gold_doc_chunks_index. Set to "local" to use the bundled
+  # policy library (BM25) if the docs pipeline hasn't run yet.
+  - name: RETAIL_RETRIEVER
+    value: vector
+  # RETAIL_SCHEMA is derived from the app name (retail-ai-<target>), so one
+  # app.yaml serves dev, staging and prod. Set it here to override.
+  - name: STREAMLIT_BROWSER_GATHER_USAGE_STATS
+    value: "false"

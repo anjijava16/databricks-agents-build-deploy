@@ -1,0 +1,94 @@
+# Runs on every push and pull request. No Databricks credentials needed for the
+# test job: Spark runs locally, retrieval runs on BM25 over the bundled policy
+# library, and the agents (analytics, RAG, agentic RAG) run against fakes.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: lint, test, offline evals (py${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12"]
+    env:
+      MLFLOW_DISABLE_AGENT_HINT: "1"   # MLflow is a dev dependency (serving tests); keep logs quiet
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Java for local Spark
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      - name: Install project + dev dependencies
+        run: uv sync
+
+      - name: Lint (ruff)
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Unit tests (pytest + local Spark)
+        run: uv run pytest --cov=retail_insights --cov-report=term-missing --junitxml=pytest-report.xml
+
+      - name: Agent evaluation (offline contract eval + SQL red team)
+        run: uv run retail-eval --offline --report eval-offline.json
+
+      - name: RAG + agentic RAG evaluation (retrieval recall, citation gate, routing, graph contract)
+        run: uv run retail-eval-rag --offline --report eval-rag-offline.json
+
+      - name: Build wheel
+        run: uv build --wheel
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-py${{ matrix.python }}
+          path: |
+            pytest-report.xml
+            eval-offline.json
+            eval-rag-offline.json
+            dist/*.whl
+
+  bundle-validate:
+    # Checks the bundle YAML against the real workspace. Skipped on forks and
+    # anywhere the Databricks secrets are not configured.
+    name: databricks bundle validate
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST || 'https://dbc-d40d7b72-eeb2.cloud.databricks.com' }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: databricks/setup-cli@main
+      - name: Validate dev and prod targets
+        if: env.DATABRICKS_CLIENT_ID != ''
+        run: |
+          databricks bundle validate -t dev
+          databricks bundle validate -t prod
+      - name: Skipped (no credentials)
+        if: env.DATABRICKS_CLIENT_ID == ''
+        run: echo "DATABRICKS_CLIENT_ID not set, skipping bundle validate"
