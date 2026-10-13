@@ -73,7 +73,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@main
+        uses: databricks/setup-cli@develop
 
       - name: Who am I
         run: databricks current-user me -o json | jq -r '.userName'
