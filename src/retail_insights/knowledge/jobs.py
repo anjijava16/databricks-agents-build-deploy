@@ -168,16 +168,20 @@ def _read_sidecars(spark, lay: Layout):
     from pyspark.sql.types import StringType, StructField, StructType
 
     schema = StructType([StructField("_stem", StringType()), StructField("sidecar_json", StringType())])
-    try:
-        js = (
-            spark.read.format("text")
-            .option("recursiveFileLookup", "true")
-            .option("pathGlobFilter", "*.json")
-            .option("wholetext", "true")
-            .load(f"{lay.landing_docs}/filings")
-        )
-    except Exception:  # folder missing (no filings fetched)
+    # Check on the volume itself, not with try/except around spark.read: serverless runs
+    # Spark Connect, which is lazy, so a missing path only fails later at write time.
+    # Volumes are mounted at /Volumes/..., so plain pathlib works here.
+    root = Path(lay.landing_docs) / "filings"
+    if not root.is_dir() or next(root.rglob("*.json"), None) is None:
+        log.info("no filing sidecars under %s; continuing with policies only", root)
         return spark.createDataFrame([], schema)
+    js = (
+        spark.read.format("text")
+        .option("recursiveFileLookup", "true")
+        .option("pathGlobFilter", "*.json")
+        .option("wholetext", "true")
+        .load(str(root))
+    )
     return js.select(
         F.regexp_replace(F.regexp_replace(F.col("_metadata.file_path"), "^dbfs:", ""), r"\.json$", "").alias(
             "_stem"
