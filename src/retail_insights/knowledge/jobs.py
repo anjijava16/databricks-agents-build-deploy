@@ -108,7 +108,6 @@ def fetch_filings(argv: list[str] | None = None) -> None:
         return
 
     client = EdgarClient(args.user_agent)
-    
     ok, failed = 0, []
     for ticker in tickers:
         try:
