@@ -83,7 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - uses: databricks/setup-cli@develop
+      - uses: databricks/setup-cli@main
       - name: Validate dev and prod targets
         if: env.DATABRICKS_CLIENT_ID != ''
         run: |
