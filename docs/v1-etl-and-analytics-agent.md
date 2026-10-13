@@ -1,6 +1,6 @@
 # v1 reference: ETL and the analytics agent
 
-> This is the original write-up for the structured half of the platform: the sales medallion ETL and the SQL analytics agent. Everything here still applies. Names changed in v2: the bundle is `retail-ai-platform`, the app is `retail-ai-<target>`, and `make etl` now sits alongside `make docs` and `make platform`. For RAG, agentic RAG, the document pipeline, serving and the full architecture, read [README_UPDATE.md](../README_UPDATE.md).
+> This is the original write-up for the structured half of the platform: the sales medallion ETL and the SQL analytics agent. Everything here still applies. Names changed in v2: the bundle is `databricks-agents-build-deploy`, the app is `retail-ai-<target>`, and `make etl` now sits alongside `make docs` and `make platform`. For RAG, agentic RAG, the document pipeline, serving and the full architecture, read [README_UPDATE.md](../README_UPDATE.md).
 
 A small but complete project that does two jobs most data teams end up owning together:
 
@@ -82,7 +82,7 @@ The two halves meet at the **gold layer**. That's deliberate. The agent never re
 ## Repository layout
 
 ```
-retail-ai-platform/
+databricks-agents-build-deploy/
 ├── databricks.yml                  # bundle root: name, variables, artifacts, targets
 ├── resources/
 │   ├── jobs.yml                    # retail_etl + retail_agent_eval (serverless)
@@ -552,7 +552,7 @@ A Databricks Asset Bundle is infrastructure as code for Databricks: YAML that de
 
 ```yaml
 bundle:
-  name: retail-ai-platform
+  name: databricks-agents-build-deploy
 include:
   - resources/*.yml
 artifacts:

@@ -14,7 +14,7 @@ resources:
       name: retail-platform-${bundle.target}
       description: End to end refresh. Structured and unstructured pipelines run in parallel, then the agents are evaluated on fresh data.
       max_concurrent_runs: 1
-      tags: { project: retail-ai-platform, layer: orchestration }
+      tags: { project: databricks-agents-build-deploy, layer: orchestration }
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: America/New_York
@@ -36,7 +36,7 @@ resources:
       name: retail-etl-${bundle.target}
       description: Sales medallion ETL (raw CSV -> bronze -> silver -> gold) with a quality gate.
       max_concurrent_runs: 1
-      tags: { project: retail-ai-platform, layer: etl }
+      tags: { project: databricks-agents-build-deploy, layer: etl }
       parameters:
         - { name: catalog, default: "${var.catalog}" }
         - { name: schema, default: "${var.schema}" }
@@ -96,7 +96,7 @@ resources:
       name: retail-docs-${bundle.target}
       description: Policies and SEC 10-K filings -> parsed text -> chunks -> Vector Search index, plus the filing_lookup UC function.
       max_concurrent_runs: 1
-      tags: { project: retail-ai-platform, layer: knowledge }
+      tags: { project: databricks-agents-build-deploy, layer: knowledge }
       parameters:
         - { name: catalog, default: "${var.catalog}" }
         - { name: schema, default: "${var.schema}" }
@@ -184,7 +184,7 @@ resources:
       name: retail-agent-eval-${bundle.target}
       description: Golden questions against live tables, Vector Search and the real model. Analytics agent, document RAG and agentic RAG, scored with MLflow judges.
       max_concurrent_runs: 1
-      tags: { project: retail-ai-platform, layer: ai }
+      tags: { project: databricks-agents-build-deploy, layer: ai }
       environments:
         - environment_key: eval
           spec:
@@ -206,14 +206,14 @@ resources:
             entry_point: retail-eval-rag
             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
                          "--warehouse-id", "${var.warehouse_id}", "--endpoint", "${var.llm_endpoint}",
-                         "--experiment", "/Shared/retail-ai-platform/evals-${bundle.target}"]
+                         "--experiment", "/Shared/databricks-agents-build-deploy/evals-${bundle.target}"]
 
     # ------------------------------------------------------------ Model Serving
     retail_agent_register:
       name: retail-agent-register-${bundle.target}
       description: Logs the agentic RAG assistant as an MLflow ResponsesAgent, registers it in Unity Catalog and optionally deploys it to Model Serving.
       max_concurrent_runs: 1
-      tags: { project: retail-ai-platform, layer: serving }
+      tags: { project: databricks-agents-build-deploy, layer: serving }
       environments:
         - environment_key: serving
           spec:
@@ -227,5 +227,5 @@ resources:
             entry_point: retail-register-agent
             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
                          "--warehouse-id", "${var.warehouse_id}", "--chat-endpoint", "${var.llm_endpoint}",
-                         "--experiment", "/Shared/retail-ai-platform/agent-${bundle.target}",
+                         "--experiment", "/Shared/databricks-agents-build-deploy/agent-${bundle.target}",
                          "--deploy", "${var.deploy_agent}"]

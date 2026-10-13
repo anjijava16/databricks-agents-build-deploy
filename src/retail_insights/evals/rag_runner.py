@@ -287,7 +287,7 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--schema", default="retail_dev")
     p.add_argument("--warehouse-id", default="")
     p.add_argument("--endpoint", default="databricks-meta-llama-3-3-70b-instruct")
-    p.add_argument("--experiment", default="/Shared/retail-ai-platform/evals")
+    p.add_argument("--experiment", default="/Shared/databricks-agents-build-deploy/evals")
     p.add_argument("--trace-to-uc", default="true")
     p.add_argument("--min-recall", type=float, default=0.8)
     p.add_argument("--min-grounded", type=float, default=0.8)

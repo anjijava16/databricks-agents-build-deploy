@@ -3901,7 +3901,7 @@ wheels = [
 ]
 
 [[package]]
-name = "retail-ai-platform"
+name = "databricks-agents-build-deploy"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [

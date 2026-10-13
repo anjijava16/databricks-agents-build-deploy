@@ -9,7 +9,7 @@
 # Foundation Model APIs, MLflow and Databricks Apps. No other cloud services.
 
 bundle:
-  name: retail-ai-platform
+  name: databricks-agents-build-deploy
 
 include:
   - resources/*.yml
