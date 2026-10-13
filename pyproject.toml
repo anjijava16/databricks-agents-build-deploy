@@ -1,5 +1,5 @@
 [project]
-name = "retail-ai-platform"
+name = "databricks-agents-build-deploy"
 version = "0.2.0"
 description = "Retail data + AI on Databricks: medallion ETL, a document pipeline into Vector Search, a SQL analytics agent, RAG and agentic RAG."
 readme = "README.md"

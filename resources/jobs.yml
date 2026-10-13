@@ -14,7 +14,7 @@ resources:
       name: retail-platform-${bundle.target}
       description: End to end refresh. Structured and unstructured pipelines run in parallel, then the agents are evaluated on fresh data.
       max_concurrent_runs: 1
-      tags: { project: databricks-agents-build-deploy, layer: orchestration }
+      tags: { project: retail-ai-platform, layer: orchestration }
       schedule:
         quartz_cron_expression: "0 0 6 * * ?"
         timezone_id: America/New_York
@@ -36,7 +36,7 @@ resources:
       name: retail-etl-${bundle.target}
       description: Sales medallion ETL (raw CSV -> bronze -> silver -> gold) with a quality gate.
       max_concurrent_runs: 1
-      tags: { project: databricks-agents-build-deploy, layer: etl }
+      tags: { project: retail-ai-platform, layer: etl }
       parameters:
         - { name: catalog, default: "${var.catalog}" }
         - { name: schema, default: "${var.schema}" }
@@ -50,14 +50,14 @@ resources:
         - task_key: setup
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-setup
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: generate
           depends_on: [{ task_key: setup }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-generate
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
                          "--days", "{{job.parameters.days}}"]
@@ -65,28 +65,28 @@ resources:
           depends_on: [{ task_key: generate }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-bronze
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: silver
           depends_on: [{ task_key: bronze }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-silver
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: gold
           depends_on: [{ task_key: silver }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-gold
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: quality_gate
           depends_on: [{ task_key: gold }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-quality-gate
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
                          "--max-quarantine-rate", "0.05", "--run-id", "{{job.run_id}}"]
@@ -96,7 +96,7 @@ resources:
       name: retail-docs-${bundle.target}
       description: Policies and SEC 10-K filings -> parsed text -> chunks -> Vector Search index, plus the filing_lookup UC function.
       max_concurrent_runs: 1
-      tags: { project: databricks-agents-build-deploy, layer: knowledge }
+      tags: { project: retail-ai-platform, layer: knowledge }
       parameters:
         - { name: catalog, default: "${var.catalog}" }
         - { name: schema, default: "${var.schema}" }
@@ -111,7 +111,7 @@ resources:
         - task_key: setup
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-setup
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         # Two independent sources land in parallel...
@@ -119,14 +119,14 @@ resources:
           depends_on: [{ task_key: setup }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-land-policies
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: fetch_filings
           depends_on: [{ task_key: setup }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-fetch-filings
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
                          "--tickers", "{{job.parameters.tickers}}",
@@ -136,28 +136,28 @@ resources:
           depends_on: [{ task_key: land_policies }, { task_key: fetch_filings }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-bronze-docs
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: silver_docs
           depends_on: [{ task_key: bronze_docs }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-silver-docs
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: chunk_docs
           depends_on: [{ task_key: silver_docs }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-chunk-docs
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: uc_functions
           depends_on: [{ task_key: chunk_docs }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-uc-functions
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
         - task_key: vector_index
@@ -165,7 +165,7 @@ resources:
           environment_key: default
           timeout_seconds: 3600
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-vector-index
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
                          "--endpoint", "${var.vector_search_endpoint}",
@@ -174,7 +174,7 @@ resources:
           depends_on: [{ task_key: vector_index }, { task_key: uc_functions }]
           environment_key: default
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-docs-quality-gate
             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
                          "--run-id", "{{job.run_id}}"]
@@ -184,7 +184,7 @@ resources:
       name: retail-agent-eval-${bundle.target}
       description: Golden questions against live tables, Vector Search and the real model. Analytics agent, document RAG and agentic RAG, scored with MLflow judges.
       max_concurrent_runs: 1
-      tags: { project: databricks-agents-build-deploy, layer: ai }
+      tags: { project: retail-ai-platform, layer: ai }
       environments:
         - environment_key: eval
           spec:
@@ -194,7 +194,7 @@ resources:
         - task_key: eval_analytics
           environment_key: eval
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-eval
             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
                          "--warehouse-id", "${var.warehouse_id}", "--endpoint", "${var.llm_endpoint}",
@@ -202,18 +202,18 @@ resources:
         - task_key: eval_rag
           environment_key: eval
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-eval-rag
             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
                          "--warehouse-id", "${var.warehouse_id}", "--endpoint", "${var.llm_endpoint}",
-                         "--experiment", "/Shared/databricks-agents-build-deploy/evals-${bundle.target}"]
+                         "--experiment", "/Shared/retail-ai-platform/evals-${bundle.target}"]
 
     # ------------------------------------------------------------ Model Serving
     retail_agent_register:
       name: retail-agent-register-${bundle.target}
       description: Logs the agentic RAG assistant as an MLflow ResponsesAgent, registers it in Unity Catalog and optionally deploys it to Model Serving.
       max_concurrent_runs: 1
-      tags: { project: databricks-agents-build-deploy, layer: serving }
+      tags: { project: retail-ai-platform, layer: serving }
       environments:
         - environment_key: serving
           spec:
@@ -223,9 +223,240 @@ resources:
         - task_key: register
           environment_key: serving
           python_wheel_task:
-            package_name: retail_insights
+            package_name: databricks-agents-build-deploy
             entry_point: retail-register-agent
             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
                          "--warehouse-id", "${var.warehouse_id}", "--chat-endpoint", "${var.llm_endpoint}",
-                         "--experiment", "/Shared/databricks-agents-build-deploy/agent-${bundle.target}",
+                         "--experiment", "/Shared/retail-ai-platform/agent-${bundle.target}",
                          "--deploy", "${var.deploy_agent}"]
+# # Five serverless jobs, all running entry points from the project wheel.
+# #
+# #   retail_platform        orchestrator: (retail_etl ‖ retail_docs) -> retail_agent_eval   [scheduled]
+# #   retail_etl             sales medallion: setup -> generate -> bronze -> silver -> gold -> quality_gate
+# #   retail_docs            documents: (policies ‖ SEC filings) -> bronze -> silver -> chunks
+# #                          -> UC function -> Vector Search index -> quality gate
+# #   retail_agent_eval      analytics eval ‖ RAG/agentic eval with MLflow judges
+# #   retail_agent_register  log + register the agentic assistant in UC, optionally deploy
+
+# resources:
+#   jobs:
+#     # ------------------------------------------------------------------ orchestrator
+#     retail_platform:
+#       name: retail-platform-${bundle.target}
+#       description: End to end refresh. Structured and unstructured pipelines run in parallel, then the agents are evaluated on fresh data.
+#       max_concurrent_runs: 1
+#       tags: { project: databricks-agents-build-deploy, layer: orchestration }
+#       schedule:
+#         quartz_cron_expression: "0 0 6 * * ?"
+#         timezone_id: America/New_York
+#         pause_status: ${var.etl_schedule_status}
+#       tasks:
+#         - task_key: sales_etl
+#           run_job_task:
+#             job_id: ${resources.jobs.retail_etl.id}
+#         - task_key: documents
+#           run_job_task:
+#             job_id: ${resources.jobs.retail_docs.id}
+#         - task_key: evaluate
+#           depends_on: [{ task_key: sales_etl }, { task_key: documents }]
+#           run_job_task:
+#             job_id: ${resources.jobs.retail_agent_eval.id}
+
+#     # -------------------------------------------------------------- structured ETL
+#     retail_etl:
+#       name: retail-etl-${bundle.target}
+#       description: Sales medallion ETL (raw CSV -> bronze -> silver -> gold) with a quality gate.
+#       max_concurrent_runs: 1
+#       tags: { project: databricks-agents-build-deploy, layer: etl }
+#       parameters:
+#         - { name: catalog, default: "${var.catalog}" }
+#         - { name: schema, default: "${var.schema}" }
+#         - { name: days, default: "${var.etl_days}" }
+#       environments:
+#         - environment_key: default
+#           spec:
+#             environment_version: "2"
+#             dependencies: [../dist/*.whl]
+#       tasks:
+#         - task_key: setup
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-setup
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: generate
+#           depends_on: [{ task_key: setup }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-generate
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
+#                          "--days", "{{job.parameters.days}}"]
+#         - task_key: bronze
+#           depends_on: [{ task_key: generate }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-bronze
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: silver
+#           depends_on: [{ task_key: bronze }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-silver
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: gold
+#           depends_on: [{ task_key: silver }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-gold
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: quality_gate
+#           depends_on: [{ task_key: gold }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-quality-gate
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
+#                          "--max-quarantine-rate", "0.05", "--run-id", "{{job.run_id}}"]
+
+#     # ----------------------------------------------------------- document pipeline
+#     retail_docs:
+#       name: retail-docs-${bundle.target}
+#       description: Policies and SEC 10-K filings -> parsed text -> chunks -> Vector Search index, plus the filing_lookup UC function.
+#       max_concurrent_runs: 1
+#       tags: { project: databricks-agents-build-deploy, layer: knowledge }
+#       parameters:
+#         - { name: catalog, default: "${var.catalog}" }
+#         - { name: schema, default: "${var.schema}" }
+#         - { name: tickers, default: "${var.filing_tickers}" }
+#         - { name: sec_user_agent, default: "${var.sec_user_agent}" }
+#       environments:
+#         - environment_key: default
+#           spec:
+#             environment_version: "2"
+#             dependencies: [../dist/*.whl]
+#       tasks:
+#         - task_key: setup
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-setup
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         # Two independent sources land in parallel...
+#         - task_key: land_policies
+#           depends_on: [{ task_key: setup }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-land-policies
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: fetch_filings
+#           depends_on: [{ task_key: setup }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-fetch-filings
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
+#                          "--tickers", "{{job.parameters.tickers}}",
+#                          "--user-agent", "{{job.parameters.sec_user_agent}}"]
+#         # ...and fan in to one medallion flow.
+#         - task_key: bronze_docs
+#           depends_on: [{ task_key: land_policies }, { task_key: fetch_filings }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-bronze-docs
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: silver_docs
+#           depends_on: [{ task_key: bronze_docs }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-silver-docs
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: chunk_docs
+#           depends_on: [{ task_key: silver_docs }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-chunk-docs
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: uc_functions
+#           depends_on: [{ task_key: chunk_docs }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-uc-functions
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}"]
+#         - task_key: vector_index
+#           depends_on: [{ task_key: chunk_docs }]
+#           environment_key: default
+#           timeout_seconds: 3600
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-vector-index
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
+#                          "--endpoint", "${var.vector_search_endpoint}",
+#                          "--embedding-endpoint", "${var.embedding_endpoint}"]
+#         - task_key: docs_quality_gate
+#           depends_on: [{ task_key: vector_index }, { task_key: uc_functions }]
+#           environment_key: default
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-docs-quality-gate
+#             parameters: ["--catalog", "{{job.parameters.catalog}}", "--schema", "{{job.parameters.schema}}",
+#                          "--run-id", "{{job.run_id}}"]
+
+#     # ------------------------------------------------------------------ evaluation
+#     retail_agent_eval:
+#       name: retail-agent-eval-${bundle.target}
+#       description: Golden questions against live tables, Vector Search and the real model. Analytics agent, document RAG and agentic RAG, scored with MLflow judges.
+#       max_concurrent_runs: 1
+#       tags: { project: databricks-agents-build-deploy, layer: ai }
+#       environments:
+#         - environment_key: eval
+#           spec:
+#             environment_version: "2"
+#             dependencies: [../dist/*.whl, "mlflow[databricks]>=3.11"]
+#       tasks:
+#         - task_key: eval_analytics
+#           environment_key: eval
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-eval
+#             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
+#                          "--warehouse-id", "${var.warehouse_id}", "--endpoint", "${var.llm_endpoint}",
+#                          "--min-pass-rate", "0.75"]
+#         - task_key: eval_rag
+#           environment_key: eval
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-eval-rag
+#             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
+#                          "--warehouse-id", "${var.warehouse_id}", "--endpoint", "${var.llm_endpoint}",
+#                          "--experiment", "/Shared/databricks-agents-build-deploy/evals-${bundle.target}"]
+
+#     # ------------------------------------------------------------ Model Serving
+#     retail_agent_register:
+#       name: retail-agent-register-${bundle.target}
+#       description: Logs the agentic RAG assistant as an MLflow ResponsesAgent, registers it in Unity Catalog and optionally deploys it to Model Serving.
+#       max_concurrent_runs: 1
+#       tags: { project: databricks-agents-build-deploy, layer: serving }
+#       environments:
+#         - environment_key: serving
+#           spec:
+#             environment_version: "2"
+#             dependencies: [../dist/*.whl, "mlflow[databricks]>=3.11", "databricks-agents>=1.0"]
+#       tasks:
+#         - task_key: register
+#           environment_key: serving
+#           python_wheel_task:
+#             package_name: retail_insights
+#             entry_point: retail-register-agent
+#             parameters: ["--catalog", "${var.catalog}", "--schema", "${var.schema}",
+#                          "--warehouse-id", "${var.warehouse_id}", "--chat-endpoint", "${var.llm_endpoint}",
+#                          "--experiment", "/Shared/databricks-agents-build-deploy/agent-${bundle.target}",
+#                          "--deploy", "${var.deploy_agent}"]
